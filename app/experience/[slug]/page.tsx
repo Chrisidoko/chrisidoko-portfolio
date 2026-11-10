@@ -2,8 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { display, mono } from "../../fonts";
 import { experiences, getExperience } from "../data";
+import { getPostsForExperience } from "../../blogs/data";
+import PostList from "../../blogs/PostList";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -21,11 +24,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ExperiencePage({ params }: Props) {
-  const { slug } = await params;
-  const exp = getExperience(slug);
-  if (!exp) notFound();
-
+// The shell (page chrome + Back link) is shared by every experience URL, so
+// it renders instantly on navigation. Only the slug-specific content reads
+// `params`, inside <Suspense>.
+export default function ExperiencePage({ params }: Props) {
   return (
     <div className="flex flex-1 flex-col bg-white font-sans text-zinc-900 dark:bg-black dark:text-zinc-50">
       <main className="mx-auto w-full max-w-3xl px-6 pb-24 pt-10 sm:px-10">
@@ -36,6 +38,40 @@ export default async function ExperiencePage({ params }: Props) {
           ← Back
         </Link>
 
+        <Suspense fallback={<ExperienceSkeleton />}>
+          <ExperienceDetails params={params} />
+        </Suspense>
+      </main>
+    </div>
+  );
+}
+
+function ExperienceSkeleton() {
+  return (
+    <div aria-hidden="true" className="mt-14 animate-pulse">
+      <div className="flex flex-col gap-8 sm:flex-row sm:items-center">
+        <div className="aspect-[4/3] w-full rounded-2xl bg-zinc-100 dark:bg-zinc-900 sm:w-[200px]" />
+        <div className="flex-1 space-y-3">
+          <div className="h-10 w-2/3 rounded-lg bg-zinc-100 dark:bg-zinc-900" />
+          <div className="h-4 w-1/3 rounded bg-zinc-100 dark:bg-zinc-900" />
+        </div>
+      </div>
+      <div className="mt-12 space-y-3">
+        <div className="h-6 w-full rounded bg-zinc-100 dark:bg-zinc-900" />
+        <div className="h-6 w-5/6 rounded bg-zinc-100 dark:bg-zinc-900" />
+      </div>
+    </div>
+  );
+}
+
+async function ExperienceDetails({ params }: Props) {
+  const { slug } = await params;
+  const exp = getExperience(slug);
+  if (!exp) notFound();
+  const related = getPostsForExperience(exp.slug);
+
+  return (
+    <>
         <header className="mt-14 flex flex-col gap-8 sm:flex-row sm:items-center">
           <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 sm:w-[200px] sm:shrink-0">
             <Image
@@ -72,11 +108,11 @@ export default async function ExperiencePage({ params }: Props) {
           ))}
         </div>
 
-        <div className="mt-8 space-y-6 text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+        <ul className="mt-8 list-disc space-y-6 pl-6 text-lg leading-8 text-zinc-600 dark:text-zinc-400">
           {exp.bullets.map((p, i) => (
             <li key={i}>{p}</li>
           ))}
-        </div>
+        </ul>
 
         {exp.highlights.length > 0 && (
           <section className="mt-14" aria-labelledby="highlights-heading">
@@ -95,7 +131,18 @@ export default async function ExperiencePage({ params }: Props) {
             </ul>
           </section>
         )}
-      </main>
-    </div>
+
+        {related.length > 0 && (
+          <section className="mt-14" aria-labelledby="writing-heading">
+            <h2
+              id="writing-heading"
+              className={`${mono.className} text-sm tracking-[0.2em] text-zinc-500`}
+            >
+              WRITING
+            </h2>
+            <PostList posts={related} />
+          </section>
+        )}
+    </>
   );
 }

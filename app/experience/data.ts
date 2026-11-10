@@ -79,7 +79,6 @@ export const experiences: Experience[] = [
     ],
     bullets: [
       "Collaborated with a team of interns to design and build a Solar Tracker System, gaining hands-on experience with microcontrollers and embedded systems.",
-      "Built a movie-recommendation system from a public dataset.",
       "Developed a smart assistive eyewear prototype for visually impaired users.",
     ],
     highlights: [

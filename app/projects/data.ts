@@ -22,8 +22,8 @@ export const projects: Project[] = [
   {
     name: "Readies",
     description:
-      "An all in one bussiness platform. Accept payments, send money, and manage your finances — all from a single, powerful platform built for modern African businesses.",
-    meta: "Payment Gateway · Fintech · Mobile Banking",
+      "An all-in-one payments platform for modern African businesses. I built and shipped the Readies website, and led QA and testing across its payment gateway API endpoints.",
+    meta: "Payment Gateway · Fintech · API Testing & QA",
     href: "https://readies.ng/",
     logo: "/projects/readies.png",
   },

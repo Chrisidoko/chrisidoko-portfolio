@@ -73,7 +73,7 @@ export default function Home() {
         {creative && (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute right-6 top-6 hidden sm:block"
+            className="pointer-events-none absolute right-6 top-24 hidden sm:block"
           >
             <PixelCloud className="h-16 w-32" />
             <PixelCloud className="-mt-6 ml-[-48px] h-10 w-20" />

@@ -1,0 +1,185 @@
+import { Architecture, Reconciliation } from "./diagrams";
+import kadunaTraining from "./images/kaduna-training.jpg";
+import kadunaStakeholders from "./images/kaduna-stakeholders.jpg";
+import dashRevenueByHead from "./images/dashboard-revenue-by-head.png";
+import dashQuality from "./images/dashboard-quality-assurance.png";
+import dashCompliance from "./images/dashboard-compliance.png";
+
+<Facts
+  items={[
+    { label: "Role", value: "Architect & sole developer" },
+    { label: "Timeline", value: "Mid-2025 – present" },
+    { label: "Client", value: "Gombe State Government, via Paypro Solutions" },
+    {
+      label: "Scale",
+      value: "3 services, 169 commits, ~50k lines in the core platform",
+    },
+    {
+      label: "Stack",
+      value: "Next.js, TypeScript, Node.js / Express, PostgreSQL",
+    },
+    {
+      label: "Payments & infra",
+      value: "Credo (eTransact), Interswitch, Nginx, PM2, Cloudflare",
+    },
+  ]}
+/>
+
+Private tertiary institutions in Gombe State owe the State a range of taxes, levies and ministry fees. Until recently, much of that revenue was collected in **cash**, reconciled **by hand**, and left **no clear audit trail**.
+
+The project set out to change that: to aggregate revenue and statistics for the education sector in one place, and in doing so digitally transform both how the sector is regulated and how the State collects what it's owed.
+
+As a company, Paypro carried out extensive stakeholder engagement, consultation and requirements gathering with the State. I was the sole developer, turning those requirements into a working system and designing it end to end. It now covers everything from a school's first registration to a tax audit report for the State's finance team, and a similar platform is deployed in Kaduna State. This post walks through how it's put together and the decisions that keep public money from getting lost along the way.
+
+---
+
+## The problem
+
+Cash collection and manual reconciliation meant that money came in, but it was hard to prove what had been paid, by whom, and for what. Even once payments started moving online, they were grouped by free-text names and couldn't be reliably attributed to the Ministry, agency or tax they belonged to.
+
+The State's ask was specific: organise every collection by **Head and Sub-Head across the MDAs**, add a **Tax Audit Module**, and report what each Head and Sub-Head generates per month and per year.
+
+That meant three things had to be true at once:
+
+- Every naira collected has to know exactly what it was for.
+- Nothing can be billed twice, and nothing can be marked paid unless it really was.
+- The people approving money can't be the same people preparing it.
+
+---
+
+## Three services, one ledger
+
+Instead of one large app, the system is three services that share a single PostgreSQL ledger. Each has one clear job.
+
+<Architecture />
+
+- **The revenue platform** is the system of record for private institutions: registration and licensing, demand notices, tax declarations, inspector field assessments, layered approvals and checkout.
+- **The executive dashboard** is deliberately **read-only**. It queries the ledger but never writes to it, and that's exactly what makes its numbers trustworthy for decision-makers.
+- **The payments gateway** lets *other* state institutions (market unions, other MDAs) collect through the same rails, using API keys instead of a school login.
+
+The payoff of the shared ledger: the payments gateway writes confirmed payments into the same ledger, so the executive dashboard reports on them with **zero changes** to the dashboard.
+
+The dashboard gives State leadership a sector-wide view, from revenue to inspection coverage and compliance in each Local Government Area:
+
+<Figure
+  src={dashQuality}
+  alt="Executive dashboard, Quality Assurance tab: stat cards for institutions inspected, compliance rate, pending assessments and accredited courses above a monthly inspection coverage line chart."
+  caption="Executive dashboard: quality assurance overview (test data)"
+/>
+
+<Figure
+  src={dashCompliance}
+  alt="Executive dashboard: a bar chart of compliance by Local Government Area colour-coded compliant, at risk and non-compliant, beside a donut chart of assessment outcomes."
+  caption="Compliance by LGA and assessment outcomes (test data)"
+/>
+
+---
+
+## Modelling revenue: Head → Sub-Head → yearly rate
+
+Every payment in the system now sits under a **Sub-Head**, and every Sub-Head belongs to a **Head**. The Head is always derived from the Sub-Head, so the two can never disagree. The Heads cover the State Internal Revenue Service, the Ministries of Trade, Environment and Education, Urban Planning, the Fire Service, and Local Government.
+
+<Figure
+  src={dashRevenueByHead}
+  alt="Revenue by Head table on the executive dashboard: Heads such as the Gombe State Internal Revenue Service expand into Sub-Heads like Personal Income Tax, PAYE and Development Levy, with a column for each month and a yearly total."
+  caption="Revenue by Head: every Head expands into its Sub-Heads, month by month (test environment)"
+/>
+
+On top of that structure, each school receives a yearly **Single Demand Notice**:
+
+- **Paid line by line.** Each line has its own checkout, so a school can pay what it accepts while disputing the rest.
+- **Personal Income Tax** is declared as the year's total income, and the platform works out the tax from the State's PIT bands, with a band-by-band breakdown for the reviewing officer.
+- **PAYE** is filed as a **monthly return**: the school lists its staff with gross pay and the PAYE deducted (or uploads an Excel/CSV template), and the platform checks it against the PAYE it expects from the bands.
+- **Objections** follow the State's revenue law. A disputed line is frozen while it's under review; if the objection is upheld, a supervisor sets the corrected amount.
+- **Arrears carry over** to the next year's notice. They're *displayed* again, not copied, so they can never be charged twice.
+- **Issued notices store their own amounts.** A rate change later in the year never alters a notice that's already gone out.
+- **Every notice prints with a QR code.** Scanning it opens a public verification page confirming the notice is genuine, without showing any amounts.
+
+---
+
+## Two people on every naira
+
+Money-affecting work follows a maker-checker model with separate portals for each role:
+
+- **School:** keeps its profile current, declares taxes, files PAYE, pays, objects, and downloads its notice.
+- **Admin:** approves schools and confirms the details that drive their tax, such as location and premises category.
+- **Inspector:** carries out field assessments of institutions.
+- **Operator:** prepares notices, reviews declarations, and raises penalties or other fees. Every adjustment needs a written reason.
+- **Supervisor:** approves or returns everything the Operator prepares, and decides objections.
+- **Finance:** sees **Revenue by Head** across the year and the **Tax Audit Module** (assessed, paid, outstanding and overdue, per school), both exportable to Excel.
+
+Nothing an Operator prepares reaches a school until a Supervisor approves it.
+
+---
+
+## Payments that can't get lost
+
+Payment webhooks are the "official" way a provider tells you a payment succeeded. They can also be delayed, missed, or misconfigured. On a government revenue system, "the webhook didn't arrive" can't mean "the school's payment disappeared."
+
+So confirmation has **three triggers but one code path**:
+
+<Reconciliation />
+
+A few rules make this safe:
+
+- **Never trust the trigger.** Whatever a webhook body or return URL claims, the system asks the provider directly, then checks that the amount paid matches the amount billed. A wrong amount leaves the line unpaid.
+- **Only ever move forward.** A payment can go from *unpaid* to *paid*, never back, so running confirmation twice is harmless.
+- **Double-clicks don't create duplicate sessions.** On the payments gateway, a payer on a slow connection clicking "Pay" twice reuses the same live checkout session for 15 minutes instead of spawning a second one that could later be paid and go untracked.
+- **The redirect is UX, not truth.** The "return to partner" link carries a `status=paid` hint, but partners are told to rely on the signed notification or the authenticated status endpoint, because anyone can type a URL.
+
+---
+
+## The external payments gateway
+
+Other institutions needed to collect through the same system without being bolted onto a school portal, so I built a standalone **Node.js / Express** service.
+
+- **HMAC-signed requests.** Each partner gets a client key and a secret signing key, which is shown once at onboarding and never sent over the wire again. Every request is signed over a timestamp plus the raw body, and requests more than about five minutes old are rejected to block replays.
+- **One contract, any gateway.** Partners always receive a checkout URL hosted by *our* service, never a provider's URL. The payer picks Credo or Interswitch there, so adding a third provider later changes nothing for partners.
+- **Signed confirmations back to the partner**, using the same HMAC scheme in reverse.
+- **Per-partner split settlement.** Each partner can have its own split of every payment across multiple bank accounts. The engine is built and tested; it's waiting on the payment provider to enable split settlement on the merchant account.
+- **Gateway request/response audit logging**, so any disputed payment can be traced through exactly what we sent and what the provider answered.
+---
+
+## A bug worth sharing
+
+During testing, the "Pay" button on the hosted checkout looked completely dead. Click it, and nothing happened. No error on the page, and the server logs showed a perfectly good `302` redirect to the payment provider.
+
+The culprit was security headers. The default Content Security Policy from Helmet includes `form-action 'self'`, and modern Chrome enforces that rule not just on where a form submits, but on **where the resulting redirect goes**. Since the checkout's whole flow is *submit form → redirect to the provider's domain*, the browser silently refused to follow it. The only clue was a line in the DevTools console.
+
+The fix was to explicitly allow each provider's checkout domain in `form-action`. It recurred with the second gateway, so it's now documented as a required step for adding any new provider.
+
+---
+
+## Running it in production
+
+All three services run on Linux servers I manage, using CloudPanel, Nginx, PM2 and Cloudflare. A few practices that matter on a system that moves real money:
+
+- **Environment safety.** Every credential and provider URL switches on one production flag. Without it, a live server would quietly process *sandbox* transactions: no crash, just money moving nowhere real. So the deploy checklist doesn't trust configuration; it confirms with a real, small transaction on the live provider.
+- **Log rotation** so audit logs never fill a disk.
+- **A deliberately cheap health endpoint** (no database, no auth) for uptime monitors to hit, so a check never adds load or false-alarms on an unrelated database hiccup.
+
+---
+
+## Rolling it out to real users
+
+A system like this only works if the officers using it every day are confident with it. Software that replaces cash and paper also replaces habits, so rollout is part of the job, not an afterthought.
+
+On the Kaduna State deployment, I ran hands-on training sessions, walking officers through the portal step by step on their own workstations, from signing in to the workflows each role would use.
+
+<Figure
+  src={kadunaTraining}
+  alt="A training session in a computer lab: a facilitator points at a projected portal sign-in page while officers follow along on desktop computers and a laptop."
+  caption="Hands-on portal training, Kaduna State deployment"
+/>
+
+<Figure
+  src={kadunaStakeholders}
+  alt="Group photo of around twenty officials and team members standing outside a building after the session."
+  caption="With stakeholders after the Kaduna training session"
+/>
+
+---
+
+## What I took away
+
+The hardest part of this project wasn't any single feature. It was turning a paper process and a set of verbal rules into a data model that the State's officers, the schools and the auditors could all trust. Most of the design decisions above are really answers to one question: *what has to be true for nobody to lose money, or be charged twice, even when something goes wrong?*
