@@ -33,6 +33,16 @@ For a visually impaired person, an obstacle at head or chest height is easy to m
 
 The eyewear combines **ultrasonic sensors** for obstacle detection with **character recognition**, and gives the wearer **real-time audio feedback** to help them navigate.
 
+### Phase 1: testing the concept
+
+Before any packaging, I wired up an early build to check that the core idea worked. Here is that first test:
+
+<YouTube
+  id="PGWAEVEoLhQ"
+  title="Guided Vision Smart Glasses: Phase 1 Build Test"
+  vertical
+/>
+
 ### My part
 
 I worked on this project with a co-intern and carried most of the build:
@@ -62,6 +72,23 @@ Here is me presenting the eyewear at NCAIR:
 I was also part of a multidisciplinary team of interns that designed and built a **Solar Tracker System**. A fixed solar panel only faces the sun directly for part of the day; our prototype was designed to **follow the sunlight**, turning the panel to keep it facing the sun.
 
 It built on the embedded work I'd started at university, where I built a stress-detection wearable using a galvanic skin response (GSR) sensor with IoT connectivity. This time I was working on hardware as part of a multidisciplinary team.
+
+---
+
+## Home Automation for Energy Conservation
+
+Alongside the bigger builds, I designed and simulated a **home automation system** in [Tinkercad](https://www.tinkercad.com/) to cut wasted electricity. It controls a room's lighting based on motion and ambient light:
+
+- **Components:** an Arduino Uno, a PIR motion sensor, an LDR (photoresistor), an LED standing in for the room light, a resistor and a breadboard.
+- **Motion turns the light on.** When someone walks into the room, the PIR sensor detects them and the Arduino switches the light on.
+- **Daylight keeps it off.** If the LDR reads enough ambient light, for example after sunrise, the Arduino sets the light to LOW, even when there is motion.
+
+Here is the simulation:
+
+<YouTube
+  id="fXchQGQgmwg"
+  title="Home Automation System for Energy Conservation"
+/>
 
 ---
 
