@@ -34,12 +34,12 @@ export const experiences: Experience[] = [
     bullets: [
       "GovTech Architecture: Designed and built an end-to-end higher education regulatory and tax platform deployed across Kaduna and Gombe state governments.",
       "Payment Infrastructure: Built high-availability payment checkouts integrating Remita, Interswitch, and Credo (eTransact) with split-settlement and multi-trigger reconciliation.",
-      "Financial Analytics: Created executive transaction ledgers and real-time reporting dashboards aggregating analytics across state networks.",
+      "Financial Analytics: Built aggregation and analytics dashboards consolidating payments from higher-education institutions across Kano, Kaduna and Gombe, and provided integration and QA support to institutions connecting their school portals to the unified platform.",
       "DevOps & Reliability: Maintain production Linux server environments (Nginx, PM2 clustering, Cloudflare) ensuring operational uptime and API integration standards.",
     ],
     highlights: [
-      "GovTech platform deployed statewide across 3 states",
-      "Integrated 4 major payment gateways into unified microservices",
+      "GovTech work across 3 states: Kano, Kaduna and Gombe",
+      "Integrated 4 payment gateways: Remita, Interswitch, Credo (eTransact) and PayKaduna",
       "Shipped readies.ng and manamprofessionals.com",
     ],
     logo: "/company/paypro.svg",
