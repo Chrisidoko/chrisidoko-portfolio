@@ -78,7 +78,7 @@ export const experiences: Experience[] = [
       "The National Centre for Artificial Intelligence and Robotics (NCAIR) is one of NITDA’s special purpose vehicles created to promote research and development on emerging technologies and their practical application in areas of Nigerian national interest.",
     ],
     bullets: [
-      "Collaborated with a team of interns to design and build a Solar Tracker System, gaining hands-on experience with microcontrollers and embedded systems.",
+      "Collaborated with a team of interns to design and build a Solar Tracker System, applying microcontroller and embedded-systems skills in a multidisciplinary team.",
       "Developed a smart assistive eyewear prototype for visually impaired users.",
     ],
     highlights: [
